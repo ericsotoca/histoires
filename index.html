@@ -1,1 +1,973 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Conte de Poche - Lecture Vocale</title>
+    <style>
+        /* --- CSS Inspiré et Simplifié --- */
+        :root {
+            --bg-color: #f4f7f9;
+            --text-color: #212529;
+            --primary-color: #0056b3; /* Bleu histoire */
+            --secondary-color: #5a9a00; /* Vert musique/play */
+            --accent-color: #ffc107; /* Jaune attention/voix */
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --input-bg: #ffffff;
+            --button-text: #ffffff;
+            --link-color: var(--primary-color);
+            --disabled-color: #adb5bd;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --danger-color: #dc3545; /* Rouge stop */
+            --success-color: #28a745;
+
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-size-base: 16px;
+            --line-height-base: 1.6;
+
+            --spacing-s: 8px;
+            --spacing-m: 16px;
+            --spacing-l: 24px;
+
+            --border-radius: 4px;
+            --shadow: 0 2px 5px var(--shadow-color);
+            --focus-outline-color: color-mix(in srgb, var(--primary-color) 50%, transparent);
+            --focus-outline-width: 3px;
+        }
+
+        /* Thème Sombre Optionnel */
+        body.dark-mode {
+            --bg-color: #212529; --text-color: #e9ecef; --primary-color: #4dabf7; --secondary-color: #94d82d;
+            --accent-color: #ffd43b; --card-bg: #343a40; --border-color: #495057; --input-bg: #495057;
+            --button-text: #212529; --link-color: var(--primary-color); --disabled-color: #6c757d; --shadow-color: rgba(0, 0, 0, 0.3);
+            --danger-color: #f57782; --success-color: #7ee2a1; --focus-outline-color: color-mix(in srgb, var(--accent-color) 70%, transparent);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: var(--font-size-base); scroll-behavior: smooth; }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); line-height: var(--line-height-base); transition: background-color 0.3s ease, color 0.3s ease; padding: var(--spacing-l); }
+        #app { max-width: 800px; margin: 0 auto; background-color: var(--card-bg); padding: var(--spacing-l); border-radius: var(--border-radius); box-shadow: var(--shadow); }
+
+        *:focus-visible { outline: var(--focus-outline-width) solid var(--focus-outline-color); outline-offset: 2px; box-shadow: 0 0 0 var(--focus-outline-width) var(--focus-outline-color); border-radius: var(--border-radius); }
+        button:focus { outline: none; }
+
+        h1, h2 { color: var(--primary-color); margin-bottom: var(--spacing-m); text-align: center;}
+        h2 { margin-top: var(--spacing-l); }
+
+        /* Listes */
+        ul { list-style: none; padding: 0; margin-bottom: var(--spacing-l); max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: var(--spacing-s);}
+        li { background-color: color-mix(in srgb, var(--bg-color) 50%, transparent); margin-bottom: var(--spacing-s); padding: var(--spacing-m); border-radius: var(--border-radius); cursor: pointer; transition: background-color 0.2s ease, box-shadow 0.2s ease; border: 1px solid transparent;}
+        li:hover { background-color: color-mix(in srgb, var(--primary-color) 10%, transparent); box-shadow: 0 1px 3px var(--shadow-color); }
+        li.selected { background-color: color-mix(in srgb, var(--primary-color) 50%, transparent); border-color: var(--primary-color); font-weight: bold; }
+        li.playing { background-color: var(--secondary-color); color: var(--button-text); font-weight: bold; border-color: var(--secondary-color); }
+
+        /* Contrôles */
+        .controls-section { margin-top: var(--spacing-l); padding-top: var(--spacing-l); border-top: 1px solid var(--border-color); }
+        .controls-section h2 { margin-bottom: var(--spacing-l); }
+        .controls-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--spacing-m); margin-bottom: var(--spacing-l);}
+        .controls-row label { font-weight: 500; margin-right: var(--spacing-s); }
+        .controls-row select { padding: var(--spacing-s); border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: var(--input-bg); color: var(--text-color); min-width: 150px; }
+        .tts-status { font-size: 0.9em; font-style: italic; color: var(--disabled-color); margin-left: var(--spacing-s); }
+
+        .volume-control { display: flex; align-items: center; justify-content: center; gap: var(--spacing-s); margin-bottom: var(--spacing-m); max-width: 350px; margin-left: auto; margin-right: auto;}
+        .volume-control label { margin-bottom: 0; flex-shrink: 0; }
+        .volume-control input[type="range"] { width: auto; flex-grow: 1; margin-bottom: 0; }
+        .volume-control output { font-weight: bold; color: var(--primary-color); min-width: 30px; text-align: right;}
+
+        /* Boutons */
+        button, .button { display: inline-flex; align-items: center; justify-content: center; background-color: var(--primary-color); color: var(--button-text); border: none; padding: var(--spacing-m) var(--spacing-l); border-radius: var(--border-radius); font-size: inherit; font-weight: 500; cursor: pointer; transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease; text-align: center; text-decoration: none; margin: var(--spacing-s); gap: var(--spacing-s); }
+        button:hover, .button:hover { background-color: color-mix(in srgb, var(--primary-color) 85%, black); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
+        button:active, .button:active { transform: translateY(1px); }
+        button:disabled, .button:disabled { background-color: var(--disabled-color); color: color-mix(in srgb, var(--text-color) 70%, var(--disabled-color)); cursor: not-allowed; box-shadow: none; transform: none; }
+        .button-play { background-color: var(--secondary-color); }
+        .button-play:hover { background-color: color-mix(in srgb, var(--secondary-color) 85%, black); }
+        .button-stop { background-color: var(--danger-color); }
+        .button-stop:hover { background-color: color-mix(in srgb, var(--danger-color) 80%, black); }
+
+        /* État */
+        #status { margin-top: var(--spacing-m); padding: var(--spacing-m); background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: var(--border-radius); text-align: center; font-style: italic; color: var(--primary-color); min-height: 50px; display: flex; align-items: center; justify-content: center;}
+        #status.playing { color: var(--secondary-color); font-weight: bold; }
+
+        .hidden { display: none !important; }
+        #story-text-display { margin-top: var(--spacing-l); padding: var(--spacing-m); background-color: color-mix(in srgb, var(--bg-color) 80%, transparent); border: 1px solid var(--border-color); border-radius: var(--border-radius); max-height: 200px; overflow-y: auto; line-height: 1.7; }
+        #story-text-display h3 { color: var(--primary-color); margin-bottom: var(--spacing-m); text-align: center; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: var(--spacing-m); }
+            #app { padding: var(--spacing-m); }
+            h1 { font-size: 1.5em; }
+            h2 { font-size: 1.2em; }
+            ul { max-height: 200px; }
+            li { padding: var(--spacing-s) var(--spacing-m); }
+            button, .button { padding: var(--spacing-s) var(--spacing-m); font-size: 0.95em; }
+            .controls-row { flex-direction: column; align-items: stretch; text-align: center; }
+            .controls-row label { margin-bottom: var(--spacing-s); }
+            .controls-row select { width: 100%; }
+            .volume-control { flex-direction: column; }
+            .volume-control label { margin-bottom: var(--spacing-s); }
+            .volume-control input[type="range"] { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Mon Conte de Poche - Lecture Vocale 🗣️</h1>
+
+        <section id="story-section">
+            <h2>Choisissez une histoire</h2>
+            <ul id="story-list">
+                <li id="loading-stories">Chargement des histoires...</li>
+            </ul>
+        </section>
+
+         <section id="story-text-display" class="hidden">
+             <h3>Texte de l'histoire sélectionnée</h3>
+             <div id="story-content"></div>
+         </section>
+
+
+        <section class="controls-section">
+            <h2>Options de Lecture</h2>
+
+            <div class="controls-row">
+                 <label for="voice-select">Voix de lecture :</label>
+                 <select id="voice-select">
+                     <option value="">Voix par défaut</option>
+                     <!-- Les voix françaises seront ajoutées ici -->
+                 </select>
+                 <span id="tts-status" class="tts-status"></span>
+            </div>
+
+            <div class="controls-row">
+                 <label for="music-select">Musique d'ambiance :</label>
+                 <select id="music-select">
+                     <option value="">Aucune</option>
+                     <!-- Les musiques seront ajoutées ici par JavaScript -->
+                 </select>
+            </div>
+
+             <div class="volume-control">
+                 <label for="music-volume">Volume Musique:</label>
+                 <input type="range" id="music-volume" min="0" max="1" step="0.05" value="0.2"> <!-- Volume musique par défaut plus bas -->
+                 <output id="music-volume-output">20%</output>
+             </div>
+
+        </section>
+
+        <section class="controls-section">
+             <h2>Contrôles de lecture</h2>
+            <div id="status">Sélectionnez une histoire pour commencer.</div>
+
+            <div class="main-controls" style="text-align: center;">
+                <button id="play-pause-btn" class="button-play" disabled>▶️ Lire</button>
+                <!-- Pause/Resume pour TTS est moins fiable, on utilise Lire/Arrêter -->
+                <!-- <button id="pause-resume-btn" disabled>⏸️ Pause</button> -->
+                <button id="stop-btn" class="button-stop" disabled>⏹️ Arrêter</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Élément Audio pour la musique de fond uniquement -->
+    <audio id="music-audio" loop></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Conte de Poche (TTS) App Initializing...");
+
+            // --- Configuration ---
+            const stories = [
+                { id: 'chapitre1', name: "1. La Révélation sous le Baobab", text: `
+LE PARCOURS DU CHAMPION D'AWALÉ
+
+## 1. La Révélation sous le Baobab
+
+Le soleil de l'après-midi filtre à travers les branches massives du baobab centenaire, créant des motifs dansants sur le sol ocre de la place du village. Vous vous approchez, attiré par les rires et les exclamations qui émanent d'un petit groupe d'anciens. La poussière rouge s'élève en fins nuages autour de vos sandales à chaque pas.
+
+Deux hommes sont assis face à face sur des tabourets sculptés, penchés au-dessus d'un objet en bois qui capte toute leur attention. Entre eux, un plateau allongé, creusé de douze alvéoles disposées en deux rangées. Dans chaque creux, des graines brillantes reflètent la lumière dorée du soleil couchant.
+
+L'air est chargé d'une multitude d'odeurs : la terre chauffée par le soleil, les fleurs de baobab au parfum épicé et légèrement sucré, et les effluves de cuisine qui s'échappent des maisons voisines. Une brise légère agite les feuilles au-dessus de votre tête, créant un bruissement apaisant qui accompagne le cliquetis des graines sur le plateau.
+
+Vous vous arrêtez à quelques pas, fasciné par la concentration des joueurs. Leurs doigts agiles saisissent les graines, les distribuent avec une précision qui témoigne d'années de pratique. Chaque mouvement est suivi d'un silence, puis d'exclamations ou de hochements de tête approbateurs de la part des spectateurs.
+
+Un vieil homme au visage buriné par les années remarque votre intérêt. Il vous fait signe d'approcher avec un sourire bienveillant qui creuse davantage les rides autour de ses yeux.
+
+"Tu n'as jamais vu d'awalé, jeune homme?" demande-t-il d'une voix rauque mais chaleureuse.
+
+Vous secouez la tête, incapable de détacher votre regard du plateau.
+
+"Viens," dit-il en se levant avec une agilité surprenante pour son âge. "Je vais t'apprendre."
+
+Il vous guide vers un banc de pierre tiède et vous fait asseoir. L'un des joueurs se lève, vous cédant sa place avec un clin d'œil complice. Le vieil homme place le plateau entre vous deux.
+
+Le bois du plateau est doux sous vos doigts, poli par des années d'utilisation. Les alvéoles sont profondes, parfaitement lisses. Les graines - vous apprendrez plus tard qu'il s'agit de graines d'iroko - sont fraîches au toucher malgré la chaleur ambiante, leur surface lisse provoquant une sensation agréable contre votre paume.
+
+"L'awalé est plus qu'un jeu," explique le vieil homme tandis qu'il dispose les graines dans les alvéoles. "C'est notre histoire, notre sagesse, notre manière de comprendre le monde."
+
+Une femme s'approche, portant un plateau avec deux verres de thé à la menthe. La vapeur parfumée s'élève en volutes délicates. Lorsque vous prenez une gorgée, le goût sucré et rafraîchissant du thé se répand sur votre langue, contrastant avec l'amertume légère des feuilles de menthe.
+
+Pendant les heures qui suivent, vous apprenez les règles fondamentales. La sensation des graines roulant entre vos doigts devient rapidement familière. Le son qu'elles produisent en tombant dans les alvéoles vous hypnotise presque. Votre premier mouvement est maladroit, quelques graines débordent du plateau et s'enfoncent dans la poussière.
+
+"Patience," murmure le vieil homme avec un sourire. "Les graines sont comme des pensées, il faut les semer avec soin."
+
+À mesure que le soleil descend vers l'horizon, colorant le ciel de teintes orangées et pourpres, quelque chose d'indéfinissable s'éveille en vous. Chaque mouvement, chaque décision semble résonner avec une partie oubliée de votre être. Lorsque vous réussissez votre première capture, la joie qui vous envahit est inexplicable, disproportionnée pour un simple jeu.
+
+Les spectateurs applaudissent, leurs mains créant un rythme qui semble faire écho aux battements accélérés de votre cœur. L'odeur de la nuit qui approche - plus fraîche, plus humide - se mêle aux parfums de la journée.
+
+Quand finalement vous vous levez, vos jambes sont engourdies d'être resté assis si longtemps, mais votre esprit est étrangement alerte, comme éveillé d'un long sommeil.
+
+"Reviens demain," dit le vieil homme en récupérant les graines une à une, les comptant avec précision. "Il y a encore beaucoup à apprendre."
+
+Sur le chemin du retour, le crépitement des insectes nocturnes accompagne vos pas. Vous sentez encore la texture des graines contre vos doigts, comme une empreinte. Cette nuit-là, vous rêvez de graines qui tombent en cascade, dessinant des motifs complexes qui racontent des histoires que vous comprenez sans mots.
+
+Ce jour-là, sous le baobab centenaire, quelque chose a changé en vous. Une graine différente a été plantée, une graine qui germerait pour devenir une passion dévorante, et plus tard, une destinée.
+                ` },
+                { id: 'chapitre2', name: "2. L'Entraînement au Crépuscule", text: `
+## 2. L'Entraînement au Crépuscule
+
+Le parc municipal s'habille doucement des teintes orangées du crépuscule. Les ombres s'allongent sur les allées de graviers, tandis que les derniers rayons du soleil filtrent à travers les branches des acacias, créant un jeu de lumière doré sur les tables en béton. C'est votre rituel quotidien depuis trois mois : après le travail, vous venez ici, là où le temps semble ralentir.
+
+Vous inspirez profondément. L'air du soir est chargé d'arômes - l'herbe fraîchement coupée, la terre humide des parterres de fleurs, et les effluves épicés qui s'échappent des fenêtres ouvertes des maisons bordant le parc. Des plats mijotent dans les cuisines, mélanges de cumin, de coriandre et d'ail qui vous rappellent que vous n'avez pas encore dîné.
+
+Mais la faim peut attendre. Une silhouette familière est déjà installée à votre table habituelle, celle qui se trouve sous le plus grand des acacias. Malgré ses soixante-dix ans, Monsieur Ibrahim arrive toujours avant vous. Son plateau d'awalé est déjà disposé, les graines parfaitement alignées dans leurs alvéoles. Six graines dans chacune des douze cavités, soixante-douze au total. Vous avez appris à les compter machinalement, une habitude que votre mentor vous a inculquée.
+
+"Le jour où tu perdras une graine, tu perdras aussi ton équilibre," répète-t-il souvent.
+
+Ses mains reposent sur ses genoux, paumes vers le ciel, dans cette posture de patience qui lui est propre. À votre approche, il lève les yeux. Son regard perçant semble toujours vous analyser, même quand ses lèvres s'étirent en un sourire chaleureux.
+
+"Tu as l'air fatigué aujourd'hui," remarque-t-il alors que vous prenez place en face de lui.
+
+Le banc en béton est froid sous vos jambes, contraste saisissant avec la chaleur qui persiste dans l'air. Vous posez votre sacoche à côté de vous, sortant le carnet où vous notez chaque partie, chaque leçon.
+
+"Journée difficile au bureau," répondez-vous en frottant vos yeux. "Mais je suis prêt."
+
+Ibrahim hoche la tête et vous tend une tasse de café qu'il a apporté dans un thermos. L'arôme riche et légèrement amer vous enveloppe, réveillant instantanément vos sens. La première gorgée est brûlante, presque douloureuse, mais la saveur intense agit comme un stimulant immédiat. L'amertume reste sur votre langue tandis que la chaleur descend dans votre gorge.
+
+"Aujourd'hui, nous allons travailler sur ta vision périphérique," annonce Ibrahim. "Un grand joueur d'awalé ne regarde jamais seulement l'alvéole qu'il vise, mais l'ensemble du plateau."
+
+Vous acquiescez, reconnaissant la sagesse de ses paroles. Trop souvent, vous vous concentrez sur une stratégie spécifique, oubliant de considérer l'ensemble des possibilités.
+
+La première partie commence sans autre préambule. Vos doigts, d'abord raides après une journée à taper sur un clavier, retrouvent progressivement leur souplesse. Les graines sont fraîches contre votre peau, leur surface lisse offrant un contraste apaisant avec la rugosité de la table en béton.
+
+Le cliquetis des graines tombant dans les alvéoles crée une musique rythmique qui se mêle aux chants des derniers oiseaux. Au loin, des enfants rient encore sur l'aire de jeux, leurs voix portées par la brise légère qui fait frémir les feuilles au-dessus de vos têtes.
+
+Ibrahim joue avec une précision mécanique, ses mouvements fluides et économes. Vous observez ses mains - couvertes de taches de vieillesse mais incroyablement agiles. Chaque graine qu'il saisit semble reconnaître son toucher, obéissant à une volonté qui transcende le simple geste.
+
+"Regarde l'ensemble," murmure-t-il alors que vous vous apprêtez à faire un mouvement. "Sens le plateau comme une extension de tes mains."
+
+Vous fermez brièvement les yeux, tentant d'intégrer son conseil. Lorsque vous les rouvrez, quelque chose a changé. Le plateau n'est plus seulement une série d'alvéoles individuelles, mais un tout cohérent, un système d'équilibres et de déséquilibres.
+
+Votre prochain mouvement surprend Ibrahim. Ses sourcils se soulèvent légèrement - la plus grande marque d'approbation qu'il s'autorise généralement. Vous venez d'exécuter une séquence que vous n'aviez jamais tentée auparavant, distribuant les graines de manière à préparer une capture trois coups plus tard.
+
+"Tu commences à voir," dit-il simplement.
+
+La partie se poursuit alors que le crépuscule cède la place à la nuit. Les lampadaires du parc s'allument un à un, entourant votre table d'un halo jaunâtre. L'air se rafraîchit, apportant avec lui l'humidité de la nuit. La sensation du vent sur votre peau nue vous fait frissonner légèrement, mais votre concentration reste intacte.
+
+Ibrahim finit par remporter la partie, comme toujours. Mais cette fois, l'écart est plus faible. Lorsqu'il compte les graines capturées, son expression trahit une satisfaction qui dépasse le simple plaisir de la victoire.
+
+"Tu apprends vite," dit-il en rangeant méthodiquement les graines. "Bientôt, tu seras prêt pour ton premier tournoi."
+
+L'idée vous fait avaler de travers la dernière gorgée de café, maintenant tiède. La compétition n'avait jamais été votre objectif. L'awalé était devenu une passion, un refuge, pas une arène.
+
+"Je ne suis pas sûr d'être prêt pour ça," répondez-vous, essuyant quelques gouttes de café sur votre menton.
+
+Ibrahim referme son plateau avec un claquement sec qui résonne dans l'air nocturne.
+
+"On n'est jamais prêt," dit-il avec un sourire énigmatique. "On plonge, et on apprend à nager en se noyant."
+
+Sur le chemin du retour, les lampadaires projettent votre ombre démesurément allongée sur le trottoir. Le goût du café persiste dans votre bouche, se mêlant maintenant à celui, plus subtil, de l'appréhension. Mais sous cette nervosité, une excitation nouvelle pulse en vous.
+
+Cette nuit-là, allongé dans votre lit, vous entendez encore le son des graines tombant dans les alvéoles. Vos doigts bougent inconsciemment, reproduisant des mouvements, explorant des stratégies. Votre esprit, incapable de trouver le sommeil, projette des plateaux d'awalé sur le plafond de votre chambre.
+
+Le tournoi. La compétition. Une nouvelle étape dans votre voyage. L'idée qui vous effrayait quelques heures plus tôt semble maintenant inévitable, comme si le chemin avait toujours été tracé ainsi.
+                ` },
+                 { id: 'chapitre3', name: "3. Premier Tournoi Local", text: `
+## 3. Premier Tournoi Local
+
+Le centre communautaire est méconnaissable ce samedi matin. Habituellement vide et calme, il bourdonne aujourd'hui d'une activité frénétique. Des tables ont été alignées dans la grande salle, chacune accueillant un plateau d'awalé et deux joueurs. L'éclairage fluorescent, cru et impitoyable, donne à la scène une qualité presque surréaliste.
+
+Vous vous tenez à l'entrée, votre sac contenant votre plateau personnel serré contre votre poitrine comme un bouclier. L'odeur caractéristique du centre vous assaille - un mélange de produits d'entretien industriels, de vieux livres de la bibliothèque adjacente, et maintenant, de transpiration humaine. Un fond olfactif auquel s'ajoute l'arôme du café bon marché servi dans un coin.
+
+"Première fois ?"
+
+La voix vous fait sursauter. Une femme d'une cinquantaine d'années vous observe avec un sourire bienveillant. Son badge indique "Organisatrice".
+
+Vous acquiescez, la gorge soudain sèche. Les mots semblent coincés quelque part entre votre cerveau et votre bouche.
+
+"Ne t'inquiète pas," poursuit-elle en vous guidant vers une table d'inscription. "Tout le monde a commencé quelque part."
+
+Le processus d'enregistrement est rapide, mécanique. Vous signez des formulaires, recevez un numéro, écoutez distraitement les explications sur le système de tournoi. Votre attention est ailleurs, captée par l'atmosphère électrique qui règne dans la salle.
+
+Des joueurs de tous âges sont présents. Certains, comme vous, semblent nerveux, tripotant maladroitement leurs plateaux ou les graines. D'autres affichent la confiance tranquille des vétérans, discutant stratégie avec animation, leurs mains mimant des mouvements complexes dans l'air.
+
+On vous assigne une table, la numéro sept. Le plateau fourni par l'organisation est standardisé, différent du vôtre. Les alvéoles sont parfaitement identiques, le bois plus clair, moins patiné. Les graines sont uniformes, légèrement plus petites que celles auxquelles vous êtes habitué. Lorsque vous les touchez, elles semblent plus légères, presque insubstantielles comparées à vos graines d'iroko polies par des années d'utilisation.
+
+Votre premier adversaire arrive - un adolescent à l'air studieux, lunettes à monture épaisse et t-shirt orné d'un logo de jeu vidéo. Il se présente comme Thomas, étudiant et joueur d'awalé depuis deux ans. Sa poignée de main est ferme, confiante.
+
+"Bonne chance," dit-il avec un sourire qui n'atteint pas tout à fait ses yeux.
+
+Une cloche retentit, signalant le début du tournoi. Le brouhaha des conversations diminue instantanément, remplacé par le cliquetis caractéristique des graines sur le bois. Votre bouche est si sèche que vous pouvez à peine avaler. Un goût métallique, celui de l'anxiété, s'installe sur votre langue.
+
+Thomas, en tant que joueur plus expérimenté en compétition, commence. Ses doigts agiles saisissent les graines de l'alvéole de son choix et les distribue avec une précision mécanique. Le son des graines tombant une à une dans les creux résonne étrangement fort à vos oreilles.
+
+C'est votre tour. Votre main tremble légèrement lorsque vous l'approchez du plateau. Les graines semblent glisser entre vos doigts, rebelles, différentes de celles avec lesquelles vous vous entraînez quotidiennement.
+
+À quelques tables de là, quelqu'un croque bruyamment dans une pomme, le son de la morsure tranchant à travers votre concentration. L'odeur des arachides grillées que mange un spectateur flotte jusqu'à vous, étrangement réconfortante dans cet environnement stressant.
+
+Les premiers tours sont maladroits. Vous faites des erreurs de débutant, oubliant de compter correctement, ratant des occasions évidentes de capture. Thomas, bien que silencieux, ne manque pas de capitaliser sur chacune de vos erreurs.
+
+Le temps passe, marqué par le tic-tac implacable de l'horloge murale. Les chaises en plastique grincent sous le poids des joueurs qui se penchent, se redressent, changent de position. Le sol en linoleum amplifie chaque mouvement, chaque pas.
+
+Puis, quelque chose change. Peut-être est-ce l'adaptation à l'environnement, ou le souvenir des entraînements avec Ibrahim qui refait surface. Vos mouvements deviennent plus assurés. Les graines, d'abord étrangères, retrouvent leur familiarité sous vos doigts. Votre vision s'élargit, englobant tout le plateau.
+
+"Intéressant," murmure Thomas après que vous ayez exécuté une capture particulièrement élégante.
+
+Le match se poursuit, équilibré maintenant. La salle autour de vous semble s'estomper, les bruits s'atténuent. Il ne reste plus que le plateau, les graines, et le rythme hypnotique du jeu.
+
+Finalement, après ce qui semble être à la fois une éternité et un instant, le match se termine. Thomas a gagné, mais de justesse. Lorsque vous comptez les graines capturées, l'écart n'est que de trois points.
+
+"Bien joué pour un premier tournoi," dit Thomas en vous tendant la main à nouveau. Cette fois, son sourire semble plus authentique. "Tu as un style intéressant. Très intuitif."
+
+Ces mots résonnent en vous, effaçant partiellement la déception de la défaite. Vous remerciez Thomas et vous préparez pour votre prochain match.
+
+Le tournoi se déroule sur toute la journée. Match après match, vous alternez victoires et défaites. Chaque partie est un apprentissage. Certains adversaires sont techniques, calculateurs, d'autres plus instinctifs, imprévisibles. Vous absorbez, adaptez, évoluez.
+
+Pendant la pause déjeuner, assis seul avec un sandwich fade de la cafétéria, vous remarquez Ibrahim qui vous observe depuis l'entrée. Il ne s'approche pas, mais son hochement de tête approbateur vaut tous les encouragements.
+
+À la fin de la journée, vous n'avez pas remporté le tournoi. Vous n'êtes même pas dans les dix premiers. Mais quelque chose a changé. La nervosité du matin s'est transformée en une détermination tranquille. Les graines standardisées du tournoi, d'abord étrangères, sont devenues des extensions de vos doigts.
+
+Lorsque vous quittez le centre communautaire, le soleil commence à se coucher, peignant le ciel de teintes orangées. L'air frais du soir est revigorant après des heures passées dans l'atmosphère confinée de la salle.
+
+Sur le chemin du retour, vous percevez encore le cliquetis des graines, comme un écho. Votre premier tournoi est terminé, mais quelque chose vous dit que ce n'est que le début d'un long voyage.
+                ` },
+                 { id: 'chapitre4', name: "4. La Maîtrise de la Technique 'Krou'", text: `
+## 4. La Maîtrise de la Technique "Krou"
+
+La pluie tambourine contre les fenêtres de la petite salle d'étude, créant une toile sonore apaisante qui contraste avec l'intense concentration qui règne à l'intérieur. L'odeur des vieux livres empilés sur les étagères se mêle à celle, plus subtile, du bois ciré du plateau d'awalé posé devant vous. Une lampe de bureau projette un cercle de lumière chaude sur la table, isolant le plateau du reste de la pièce plongée dans une semi-pénombre.
+
+Face à vous se tient Monsieur Konaté, ancien champion d'awalé et maintenant professeur respecté de ce jeu millénaire. Originaire de Côte d'Ivoire, il a apporté avec lui non seulement sa maîtrise technique, mais aussi une compréhension profonde de la philosophie qui sous-tend chaque mouvement.
+
+"La technique 'Krou' n'est pas seulement une stratégie," explique-t-il de sa voix basse et mélodieuse qui porte l'accent chantant de son pays natal. "C'est une façon de penser, de voir plusieurs mouvements à l'avance, comme un joueur d'échecs, mais avec la fluidité d'un danseur."
+
+Il se lève et se dirige vers le tableau blanc fixé au mur. Le marqueur couine légèrement lorsqu'il commence à dessiner des diagrammes, représentant différentes configurations du plateau. Ses mains, grandes et expressives, tracent des flèches, des cercles, construisant un langage visuel complexe.
+
+"Regarde," dit-il en tapotant le tableau. "La beauté du 'Krou' réside dans sa simplicité apparente qui cache une complexité profonde."
+
+Vous observez attentivement, tentant d'absorber chaque détail. Votre carnet est ouvert devant vous, les pages déjà couvertes de notes et de schémas des sessions précédentes. L'encre bleue de votre stylo s'étale légèrement sur le papier à cause de l'humidité ambiante.
+
+Sur la petite table à côté de vous repose une tasse de thé au gingembre que Monsieur Konaté a préparé avant la leçon. Le parfum épicé s'élève en volutes, stimulant vos sens. Vous prenez une gorgée - le liquide est encore chaud, la saveur piquante du gingembre se répand sur votre langue, suivie par une douceur subtile qui contraste agréablement.
+
+Monsieur Konaté revient s'asseoir face à vous. Ses yeux, derrière des lunettes à monture fine, scrutent votre visage à la recherche de signes de compréhension.
+
+"Maintenant, nous allons mettre la théorie en pratique," annonce-t-il en réarrangeant les graines sur le plateau. "Je vais créer une situation, et tu vas tenter d'appliquer la technique."
+
+Ses doigts dansent sur le plateau, disposant les graines dans une configuration spécifique. Le son des graines tombant dans les alvéoles en bois crée une mélodie familière, presque méditative.
+
+"Voilà," dit-il en reculant ses mains. "Que ferais-tu maintenant?"
+
+Vous vous penchez sur le plateau, analysant la situation. Les graines sont disposées de manière asymétrique - certaines alvéoles contiennent jusqu'à huit graines, d'autres seulement une ou deux. La distribution n'est pas aléatoire, vous le savez, mais conçue pour tester votre compréhension.
+
+Vos doigts effleurent les graines sans les saisir, sentant leur texture familière, légèrement rugueuse mais polie par des années de manipulation. Vous fermez brièvement les yeux, visualisant les mouvements possibles, leurs conséquences, les réactions probables.
+
+Dehors, le tonnerre gronde au loin. La pluie s'intensifie, frappant les vitres avec plus d'insistance. Le contraste entre la tempête extérieure et le calme studieux de la salle accentue étrangement votre concentration.
+
+Finalement, vous choisissez une alvéole - la troisième de votre rangée, contenant quatre graines. Vos doigts les saisissent d'un mouvement fluide, puis les distribuent une à une. La dernière graine tombe dans une alvéole contenant deux graines, ce qui vous permet de capturer le contenu de l'alvéole opposée.
+
+Monsieur Konaté hoche la tête, mais son expression reste neutre. "Continue," murmure-t-il.
+
+La séquence se poursuit. Chaque mouvement en prépare un autre, chaque capture en anticipe une suivante. C'est comme construire un pont tout en le traversant - chaque pierre doit être placée précisément pour que la structure tienne.
+
+Après plusieurs minutes de jeu intense, vous terminez une séquence particulièrement complexe. Cinq captures consécutives, un enchaînement que vous n'auriez jamais cru possible il y a encore quelques semaines.
+
+Un sourire rare illumine le visage de Monsieur Konaté. "Tu l'as fait," dit-il simplement. "C'était une exécution parfaite de la technique 'Krou'."
+
+Une vague de satisfaction vous submerge, presque physique dans son intensité. La sensation est comparable à celle d'un coureur atteignant la ligne d'arrivée après un marathon - épuisement et exaltation mêlés.
+
+"Ce n'était pas juste chance?" demandez-vous, encore incrédule face à ce que vous venez d'accomplir.
+
+Monsieur Konaté secoue la tête. "La chance n'existe pas dans l'awalé. Seulement la vision et la préparation." Il commence à réarranger les graines. "Essayons à nouveau, avec une configuration différente."
+
+Les heures passent, marquées uniquement par le changement d'intensité de la pluie et les gorgées occasionnelles de thé, maintenant froid. Votre concentration ne faiblit pas. Chaque nouvelle configuration est un puzzle à résoudre, chaque mouvement une pièce à placer correctement.
+
+Parfois, vous échouez, perdant le fil de votre stratégie ou manquant une opportunité cachée. Dans ces moments, Monsieur Konaté ne montre jamais de déception, seulement une patience infinie. "Recommence," dit-il simplement. "Observe plus largement."
+
+Vers la fin de la session, la pluie s'est calmée, se transformant en un bruissement doux contre les fenêtres. L'air de la pièce s'est imprégné d'une odeur de terre mouillée qui s'infiltre par les interstices des fenêtres anciennes.
+
+"Une dernière configuration," annonce Monsieur Konaté. Ses mouvements sont plus lents maintenant, trahissant une légère fatigue.
+
+Cette fois, la disposition est d'une complexité intimidante. Vos yeux parcourent le plateau, cherchant un point d'entrée, une faille dans ce qui semble être un labyrinthe impénétrable.
+
+Vous respirez profondément, laissant l'air emplir vos poumons. L'odeur des livres, du bois, du thé, de la pluie - tout se mêle en une symphonie olfactive qui, étrangement, clarifie votre esprit.
+
+Votre main se pose sur l'alvéole que vous avez choisie. Les graines sont chaudes sous vos doigts, comme vivantes. Le premier mouvement initie une cascade, une réaction en chaîne soigneusement orchestrée.
+
+Lorsque vous terminez, neuf graines ont été capturées en une seule séquence. C'est votre record personnel.
+
+Le silence qui suit est presque sacré, rompu uniquement par le tic-tac discret de l'horloge murale. Monsieur Konaté vous regarde avec une expression nouvelle - non plus celle d'un professeur évaluant un élève, mais celle d'un maître reconnaissant un pair potentiel.
+
+"Tu as maîtrisé le 'Krou'," dit-il finalement. "Mais ce n'est qu'un début. Il existe d'autres techniques, d'autres niveaux de compréhension."
+
+Vous acquiescez, à la fois épuisé et énergisé par cette révélation. La sensation d'accomplissement est indescriptible, comme une chaleur qui se répand dans votre poitrine, irradiant jusqu'au bout de vos doigts.
+
+"Je suis prêt à apprendre," répondez-vous.
+
+Monsieur Konaté sourit tout en commençant à ranger les graines dans leur boîte en bois sculpté. Le son des graines s'entrechoquant doucement ponctue ses paroles:
+
+"Apprendre, oui, toujours. Mais maintenant, il est peut-être temps de commencer à enseigner aussi."
+
+Cette suggestion vous surprend. "Enseigner? Mais je viens à peine de..."
+
+"L'enseignement est le meilleur apprentissage," l'interrompt-il doucement. "Quand tu expliques à un autre, tu comprends mieux toi-même."
+
+Dehors, le ciel s'éclaircit progressivement. Un rayon de soleil perce à travers les nuages, illuminant brièvement la pièce d'une lumière dorée. Ce moment de clarté semble souligner les paroles de Monsieur Konaté, leur donnant un poids supplémentaire.
+
+Vous quittez la salle d'étude avec un sentiment de transformation. Quelque chose a changé en vous aujourd'hui - une compréhension plus profonde, une connexion plus intime avec le jeu qui est devenu bien plus qu'un simple passe-temps.
+
+La technique "Krou" n'est plus un mystère, mais un outil dans votre arsenal, une clé qui ouvre de nouvelles portes dans votre voyage à travers le monde fascinant de l'awalé.
+                ` },
+                 { id: 'chapitre5', name: "5. Le Duel Contre le Champion Régional (Partie 1)", text: `
+## 5. Le Duel Contre le Champion Régional
+
+L'amphithéâtre municipal, habituellement réservé aux conférences et spectacles, a été transformé pour l'occasion. Les sièges, disposés en demi-cercle, sont tous occupés. Des centaines de personnes, venues de toute la région, murmurent avec anticipation. L'excitation est palpable, vibrant dans l'air comme un courant électrique invisible.
+
+Vous êtes assis sur scène, à une table spécialement installée sous les projecteurs. La chaleur des lumières est intense, faisant perler de fines gouttes de sueur sur votre front. En face de vous, impassible, se tient Yao "Le Calculateur", champion régional depuis trois années consécutives. Son visage est une énigme, ses yeux sombres ne trahissant aucune émotion.
+
+Le silence s'installe progressivement dans la salle tandis que l'arbitre annonce le début du match final. Un micro amplifie le son de sa voix, qui résonne dans tout l'amphithéâtre. Puis, il ne reste plus que le bruit feutré des graines sur le plateau, amplifié lui aussi par des micros discrets placés près de la table.
+
+Chaque cliquetis semble résonner dans votre poitrine. Votre cœur bat à un rythme effréné, un contraste saisissant avec le calme apparent de votre adversaire. L'odeur de la poussière de scène, mêlée à celle du parfum discret de Yao, flotte dans l'air immobile.
+
+Vous essayez de vous concentrer, de vous rappeler les enseignements d'Ibrahim et de Konaté. La vision périphérique, la technique "Krou", la patience. Mais l'atmosphère est écrasante. Le poids des regards des spectateurs semble peser sur vos épaules.
+
+Le début du match est tendu. Chaque joueur prend son temps, analysant le plateau, anticipant les mouvements futurs. Yao joue avec une précision redoutable, ses doigts effilés se déplaçant avec une rapidité et une économie de mouvement qui vous déconcertent. Chaque graine qu'il distribue semble tomber exactement là où il l'avait prévu.
+
+Vous résistez, appliquant les stratégies apprises, tentant de ne pas vous laisser submerger par la réputation et la présence de votre adversaire. Vous parvenez à réaliser quelques captures, forçant Yao à adapter sa défense.
+
+La partie s'étire, chaque coup étant suivi d'un silence intense dans la salle. Les spectateurs retiennent leur souffle, leurs yeux rivés sur le plateau comme s'il s'agissait du centre de l'univers.
+
+(Fin de la partie fournie pour le chapitre 5)
+                ` },
+                // Ajouter les chapitres 6 à 10 ici quand ils seront fournis
+                // Exemple de placeholder si le texte n'est pas encore là:
+                 { id: 'chapitre6', name: "6. L'Invitation Inattendue", text: `## 6. L'Invitation Inattendue \n\n (Texte du chapitre 6 à ajouter)` },
+                 { id: 'chapitre7', name: "7. Le Voyage vers l'Inconnu", text: `## 7. Le Voyage vers l'Inconnu \n\n (Texte du chapitre 7 à ajouter)` },
+                 { id: 'chapitre8', name: "8. La Rencontre des Maîtres", text: `## 8. La Rencontre des Maîtres \n\n (Texte du chapitre 8 à ajouter)` },
+                 { id: 'chapitre9', name: "9. La Finale Mondiale", text: `## 9. La Finale Mondiale \n\n (Texte du chapitre 9 à ajouter)` },
+                 { id: 'chapitre10', name: "10. Le Retour du Champion", text: `## 10. Le Retour du Champion \n\n (Texte du chapitre 10 à ajouter)` },
+            ];
+
+            const backgroundMusic = [
+                // IMPORTANT: Remplacez '#' par les URLs réelles de vos fichiers musicaux
+                { id: 'musique1', name: "Ambiance Douce", url: "musics/douce.mp3" }, // Exemple
+                { id: 'musique2', name: "Forêt Mystérieuse", url: "musics/foret.mp3" },
+                { id: 'musique3', name: "Nuit Étoilée", url: "musics/nuit.mp3" },
+                { id: 'musique4', name: "Voyage Spatial Calme", url: "#" },
+                { id: 'musique5', name: "Piano Relaxant", url: "#" },
+            ];
+
+            // --- Références DOM ---
+            const storyListEl = document.getElementById('story-list');
+            const storyTextDisplayEl = document.getElementById('story-text-display');
+            const storyContentEl = document.getElementById('story-content');
+            const musicSelectEl = document.getElementById('music-select');
+            const voiceSelectEl = document.getElementById('voice-select');
+            const ttsStatusEl = document.getElementById('tts-status');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const statusEl = document.getElementById('status');
+            const musicAudio = document.getElementById('music-audio');
+            const musicVolumeSlider = document.getElementById('music-volume');
+            const musicVolumeOutput = document.getElementById('music-volume-output');
+
+            // --- État de l'application ---
+            let currentStory = null;
+            let currentMusic = null;
+            let isPlaying = false; // Indique si TTS ou musique est en cours
+            let isTTSReading = false; // Spécifiquement pour l'état de la lecture TTS
+            let audioContextResumed = false;
+
+            // --- MODULE: Synthèse Vocale (TTS) ---
+            const TTSManager = (() => {
+                const synthesis = window.speechSynthesis;
+                let voices = [];
+                let isSupported = false;
+                let currentUtterance = null;
+                let preferredVoiceURI = null; // Pour stocker la sélection
+                let isTTSReadingInternal = false; // Renommé pour clarté
+
+                function init() { // Déclaration de la fonction init
+                    if ('speechSynthesis' in window) {
+                        isSupported = true;
+                        console.log("TTS supporté.");
+                        // Essayer de peupler immédiatement, puis attendre l'événement
+                        populateVoiceList();
+                        if (synthesis.onvoiceschanged !== undefined) {
+                            synthesis.onvoiceschanged = populateVoiceList;
+                        }
+                        if(ttsStatusEl) ttsStatusEl.textContent = ''; // Vérifier si l'élément existe
+                    } else {
+                        console.warn("TTS non supporté.");
+                         if(ttsStatusEl) ttsStatusEl.textContent = "(Lecture vocale non supportée)";
+                         if(voiceSelectEl) voiceSelectEl.disabled = true;
+                         if(playPauseBtn) playPauseBtn.disabled = true;
+                    }
+                }
+
+                 function populateVoiceList() {
+                    if (!isSupported || !synthesis) return; // Ajouter vérification synthesis
+                    try {
+                        // Filtrer pour obtenir les voix françaises
+                        voices = synthesis.getVoices().filter(v => v.lang.startsWith('fr'));
+                        console.log("Voix FR trouvées:", voices.length);
+
+                        if (!voiceSelectEl) return; // Sortir si l'élément n'existe pas encore
+
+                        const currentVal = voiceSelectEl.value;
+                        voiceSelectEl.innerHTML = '<option value="">Voix système par défaut</option>';
+
+                        voices.forEach(voice => {
+                            const option = document.createElement('option');
+                            option.value = voice.voiceURI;
+                            option.textContent = `${voice.name} (${voice.lang})`;
+                            // Conserver la sélection si elle existe déjà ou correspond à la préférée
+                            option.selected = (voice.voiceURI === currentVal && currentVal !== "") || voice.voiceURI === preferredVoiceURI;
+                            voiceSelectEl.appendChild(option);
+                        });
+
+                         // Si une voix était sélectionnée et existe toujours, la garder, sinon utiliser la préférée si elle existe
+                         if (currentVal && voices.some(v => v.voiceURI === currentVal)) {
+                              voiceSelectEl.value = currentVal;
+                              preferredVoiceURI = currentVal; // Mettre à jour la préférée
+                         } else if (preferredVoiceURI && voices.some(v => v.voiceURI === preferredVoiceURI)) {
+                              voiceSelectEl.value = preferredVoiceURI;
+                         }
+
+
+                        voiceSelectEl.disabled = (voices.length === 0);
+                         if (ttsStatusEl) { // Vérifier si ttsStatusEl existe
+                            if (voices.length === 0 && isSupported) {
+                                ttsStatusEl.textContent = "(Aucune voix FR trouvée)";
+                            } else {
+                                ttsStatusEl.textContent = '';
+                            }
+                         }
+
+                    } catch (e) {
+                        console.error("Erreur getVoices:", e);
+                        if(ttsStatusEl) ttsStatusEl.textContent = "(Erreur chargement voix)";
+                        if(voiceSelectEl) voiceSelectEl.disabled = true;
+                    }
+                }
+
+                function speak(text, onEndCallback) {
+                     if (!isSupported || !text) return false;
+                     // Si déjà en train de parler, annuler d'abord pour éviter conflit
+                     if (synthesis.speaking) {
+                         console.warn("TTS Manager: Already speaking, cancelling previous utterance first.");
+                         cancel(); // Arrête la précédente
+                         // Ajouter un petit délai avant de parler à nouveau peut aider sur certains navigateurs
+                         // setTimeout(() => speak(text, onEndCallback), 100);
+                         // return true; // Indique qu'on a *essayé* de lancer
+                     }
+
+
+                    currentUtterance = new SpeechSynthesisUtterance(text);
+                    preferredVoiceURI = voiceSelectEl.value;
+                    const selectedVoice = voices.find(v => v.voiceURI === preferredVoiceURI);
+
+                    if (selectedVoice) {
+                        currentUtterance.voice = selectedVoice;
+                        console.log("Voix TTS sélectionnée:", selectedVoice.name);
+                    } else {
+                         let defaultFrVoice = voices.find(v => v.lang === 'fr-FR') || voices.find(v => v.lang.startsWith('fr'));
+                         if (defaultFrVoice) {
+                             currentUtterance.voice = defaultFrVoice;
+                             console.log("Voix TTS FR par défaut utilisée:", defaultFrVoice.name);
+                         } else { console.warn("Aucune voix FR trouvée, utilise défaut système."); }
+                    }
+
+                    currentUtterance.lang = 'fr-FR';
+                    currentUtterance.pitch = 1;
+                    currentUtterance.rate = 1;
+
+                    currentUtterance.onstart = () => {
+                        console.log("TTS: Lecture démarrée.");
+                        isTTSReadingInternal = true;
+                    };
+
+                    currentUtterance.onend = () => {
+                        console.log("TTS: Lecture terminée.");
+                        isTTSReadingInternal = false;
+                        currentUtterance = null;
+                        if (typeof onEndCallback === 'function') {
+                            onEndCallback();
+                        }
+                    };
+
+                    currentUtterance.onerror = (e) => {
+                         console.error('Erreur TTS:', e.error);
+                         updateStatus(`Erreur lecture vocale: ${e.error}`);
+                         isTTSReadingInternal = false;
+                         currentUtterance = null;
+                         if (typeof onEndCallback === 'function') {
+                             onEndCallback(true);
+                         }
+                    };
+
+                     try {
+                        synthesis.speak(currentUtterance);
+                        console.log("TTS: Demande de lecture envoyée.");
+                        return true;
+                    } catch (e) {
+                        console.error("Erreur synthesis.speak:", e);
+                        updateStatus("Impossible de démarrer la lecture vocale.");
+                        isTTSReadingInternal = false;
+                        currentUtterance = null;
+                         if (typeof onEndCallback === 'function') {
+                             onEndCallback(true);
+                         }
+                        return false;
+                    }
+                }
+
+                function cancel() {
+                    if (synthesis && (synthesis.speaking || synthesis.pending)) {
+                        console.log("TTS: cancel() demandé.");
+                        isTTSReadingInternal = false; // Mettre à jour l'état AVANT d'annuler peut éviter des conditions de course
+                        synthesis.cancel();
+                    }
+                    // Assurer que l'état est bien réinitialisé même si cancel() est appelé sans lecture en cours
+                     isTTSReadingInternal = false;
+                     currentUtterance = null;
+                }
+
+                function pause() { if(synthesis && synthesis.speaking) synthesis.pause(); }
+                function resume() { if(synthesis && synthesis.paused) synthesis.resume(); }
+
+                // Ne PAS appeler init() ici à l'intérieur
+
+                // Retourner l'objet avec les méthodes publiques, y compris init
+                return {
+                    init, // <<<---- AJOUTÉ ICI
+                    isSupported: () => isSupported,
+                    populateVoiceList, // Exposer pour une mise à jour manuelle si besoin
+                    speak,
+                    cancel,
+                    pause,
+                    resume,
+                    isSpeaking: () => isTTSReadingInternal // Utiliser la variable interne renommée
+                };
+            })();
+            // --- Fin MODULE TTS ---
+            // --- Fonctions ---
+
+            // Initialisation de l'Audio Context sur interaction utilisateur
+            function initAudioContextIfNeeded() {
+                if (audioContextResumed || !TTSManager.isSupported()) return; // Pas besoin si déjà fait ou si TTS non supporté
+
+                const forceAudio = () => {
+                     if (audioContextResumed) return;
+                    // Pour Web Audio API (si on l'utilisait) et parfois nécessaire pour SpeechSynthesis
+                    const tempContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (tempContext.state === 'suspended') {
+                        tempContext.resume().then(() => {
+                            console.log("AudioContext resumed on user interaction.");
+                            audioContextResumed = true;
+                            tempContext.close(); // Ferme le contexte temporaire
+                             // Retirer les écouteurs une fois l'action réussie
+                             document.body.removeEventListener('click', forceAudio, { capture: true });
+                             document.body.removeEventListener('touchstart', forceAudio, { capture: true });
+                             document.body.removeEventListener('keydown', forceAudio, { capture: true });
+                        }).catch(e => console.error("Error resuming AudioContext:", e));
+                    } else {
+                        audioContextResumed = true;
+                        console.log("AudioContext already active or not needed to resume.");
+                        tempContext.close();
+                        // Retirer les écouteurs car l'audio est actif
+                         document.body.removeEventListener('click', forceAudio, { capture: true });
+                         document.body.removeEventListener('touchstart', forceAudio, { capture: true });
+                         document.body.removeEventListener('keydown', forceAudio, { capture: true });
+                    }
+                     // Pour SpeechSynthesis, essayer de parler d'une espace vide peut aussi aider
+                    window.speechSynthesis.speak(new SpeechSynthesisUtterance(' '));
+                     window.speechSynthesis.cancel(); // Annuler immédiatement
+                };
+
+                 // Attacher les écouteurs pour la première interaction
+                 document.body.addEventListener('click', forceAudio, { once: true, capture: true });
+                 document.body.addEventListener('touchstart', forceAudio, { once: true, capture: true });
+                 document.body.addEventListener('keydown', forceAudio, { once: true, capture: true });
+                 console.log("Audio interaction listeners attached.");
+            }
+
+
+            function populateStories() {
+                storyListEl.innerHTML = '';
+                if (!stories || stories.length === 0) {
+                    storyListEl.innerHTML = '<li>Aucune histoire disponible.</li>';
+                    return;
+                }
+                stories.forEach(story => {
+                    const li = document.createElement('li');
+                    li.textContent = story.name;
+                    li.dataset.storyId = story.id;
+                    // Vérifier si le texte existe et n'est pas juste un placeholder
+                    if (!story.text || story.text.includes("(Texte du chapitre")) {
+                         li.style.opacity = "0.5";
+                         li.title = "Texte non disponible";
+                         li.style.cursor = "not-allowed";
+                    } else {
+                        li.addEventListener('click', () => selectStory(story));
+                    }
+                    storyListEl.appendChild(li);
+                });
+            }
+
+             function formatStoryTextForDisplay(text) {
+                // Simple formatage: remplace les titres markdown par des h4 et les nouvelles lignes par des <p>
+                let html = text.trim()
+                               .replace(/^## (.*)$/gm, '<h4>$1</h4>') // Titres h2 markdown -> h4 HTML
+                               .replace(/\n\n+/g, '</p><p>')        // Doubles sauts de ligne -> paragraphes
+                               .replace(/\n/g, '<br>');              // Sauts de ligne simples -> <br>
+                return '<p>' + html + '</p>'; // Encapsuler dans un <p> initial
+             }
+
+
+            function populateMusic() {
+                if (!backgroundMusic || backgroundMusic.length === 0) return;
+                backgroundMusic.forEach(music => {
+                    const option = document.createElement('option');
+                    option.value = music.id;
+                    option.textContent = music.name;
+                    if (!music.url || music.url === "#") {
+                        option.disabled = true;
+                        option.textContent += " (indisponible)";
+                    }
+                    musicSelectEl.appendChild(option);
+                });
+            }
+
+            function selectStory(storyData) {
+                 if (!storyData || !storyData.text || storyData.text.includes("(Texte du chapitre")) return;
+
+                console.log("Selecting story:", storyData.name);
+
+                // Annuler la lecture en cours si une autre histoire est sélectionnée
+                 if (TTSManager.isSpeaking() || isPlaying) {
+                    stopPlayback();
+                 }
+
+                currentStory = storyData;
+
+                // Met à jour l'UI de la liste
+                document.querySelectorAll('#story-list li').forEach(li => {
+                    li.classList.remove('selected', 'playing');
+                    if (li.dataset.storyId === storyData.id) {
+                        li.classList.add('selected');
+                    }
+                });
+
+                 // Affiche le texte de l'histoire sélectionnée
+                 storyContentEl.innerHTML = formatStoryTextForDisplay(storyData.text);
+                 storyTextDisplayEl.classList.remove('hidden');
+                 storyTextDisplayEl.scrollTop = 0; // Remonte en haut
+
+                updateStatus(`Prêt à lire : ${storyData.name}`);
+                playPauseBtn.disabled = false;
+                stopBtn.disabled = false; // On peut arrêter même avant de lire
+
+                // On ne change pas la musique sélectionnée ici
+            }
+
+            function selectMusic() {
+                const selectedId = musicSelectEl.value;
+                const wasMusicPlaying = !musicAudio.paused;
+
+                 // Arrêter la musique précédente proprement
+                 musicAudio.pause();
+                 musicAudio.src = ""; // Important pour arrêter complètement le chargement/lecture
+
+                if (!selectedId) {
+                    console.log("Music selection: None");
+                    currentMusic = null;
+                } else {
+                    currentMusic = backgroundMusic.find(music => music.id === selectedId);
+                    if (currentMusic && currentMusic.url && currentMusic.url !== "#") {
+                        console.log("Selecting music:", currentMusic.name);
+                        musicAudio.src = currentMusic.url;
+                        musicAudio.load();
+                         // Si la lecture TTS était en cours (ou l'état global isPlaying), relancer la musique
+                        if (isPlaying) {
+                            musicAudio.play().catch(e => console.error("Error restarting music:", e));
+                        }
+                    } else {
+                        console.log("Selected music not available or invalid.");
+                        currentMusic = null;
+                    }
+                }
+                // Mettre à jour le volume au cas où
+                setMusicVolume(musicVolumeSlider.value);
+            }
+
+             // Fonction appelée à la fin de la lecture TTS ou sur erreur
+             function handleTTSFinished(errorOccurred = false) {
+                 console.log(`TTS finished. Error: ${errorOccurred}`);
+                 isTTSReading = false; // Assurer que l'état TTS est bien false
+
+                 // Ne pas changer isPlaying ici, car la musique peut continuer
+                 // Si on veut que tout s'arrête à la fin du TTS:
+                 if (isPlaying) { // Vérifie si on était activement en mode "lecture"
+                     stopPlayback(); // Arrête tout, y compris la musique
+                     if (!errorOccurred && currentStory) {
+                        updateStatus(`Histoire "${currentStory.name}" terminée.`);
+                        // Resélectionne visuellement
+                        document.querySelector(`#story-list li[data-story-id="${currentStory.id}"]`)?.classList.add('selected');
+                     }
+                 } else {
+                    // Si on n'était pas en mode "playing" (cas étrange?), juste s'assurer que l'UI est correcte
+                    playPauseBtn.textContent = '▶️ Lire';
+                    stopBtn.disabled = true;
+                    playPauseBtn.disabled = !currentStory;
+                    if (currentStory) {
+                         highlightPlayingStory(currentStory.id, false);
+                         document.querySelector(`#story-list li[data-story-id="${currentStory.id}"]`)?.classList.add('selected');
+                    }
+                 }
+             }
+
+            function playPlayback() {
+                if (!currentStory || TTSManager.isSpeaking()) return;
+
+                initAudioContextIfNeeded(); // Important pour mobile
+
+                console.log("Requesting TTS playback:", currentStory.name);
+                const ttsStarted = TTSManager.speak(currentStory.text, handleTTSFinished);
+
+                if (ttsStarted) {
+                    isPlaying = true; // État global de lecture activé
+                    playPauseBtn.textContent = 'Reading...'; // Indiquer que ça lit
+                    playPauseBtn.disabled = true; // Désactiver pendant la lecture (on utilise Stop)
+                    stopBtn.disabled = false;
+                    updateStatus(`Lecture : ${currentStory.name}${currentMusic ? ` (avec ${currentMusic.name})` : ''}`, true);
+                    highlightPlayingStory(currentStory.id, true);
+
+                    // Jouer la musique si sélectionnée
+                    if (currentMusic) {
+                        console.log("Playing music:", currentMusic.name);
+                         musicAudio.play().catch(e => {
+                             console.error("Error playing music:", e);
+                             // Peut arriver si l'utilisateur n'a pas interagi
+                             if (!audioContextResumed) {
+                                 updateStatus(`Erreur musique. Cliquez/Touchez l'écran puis réessayez.`);
+                             }
+                         });
+                    }
+                } else {
+                     // TTS n'a pas démarré (déjà en cours, non supporté, etc.)
+                     console.warn("TTS could not start.");
+                     // Si l'échec est dû à l'interaction, initAudioContextIfNeeded devrait déjà afficher un message
+                     if (TTSManager.isSupported()) { // N'affiche que si le TTS est censé marcher
+                         updateStatus("Impossible de démarrer la lecture vocale pour le moment.");
+                     }
+                }
+            }
+
+            // Pause/Resume sont retirés car peu fiables pour TTS. On utilise Stop.
+            // function pausePlayback() { ... }
+            // function resumePlayback() { ... }
+
+            function stopPlayback() {
+                console.log("Stopping playback (TTS and Music)");
+                TTSManager.cancel(); // Arrête la synthèse vocale
+                musicAudio.pause();
+                musicAudio.currentTime = 0;
+
+                isPlaying = false; // État global
+                isTTSReading = false; // État TTS
+
+                playPauseBtn.textContent = '▶️ Lire';
+                stopBtn.disabled = true; // On ne peut pas stopper si déjà arrêté
+                playPauseBtn.disabled = !currentStory; // Désactivé si aucune histoire sélectionnée
+
+                 if (currentStory) {
+                     updateStatus(`Arrêté. Prêt pour : ${currentStory.name}`, false);
+                     highlightPlayingStory(currentStory.id, false);
+                     // Garde 'selected'
+                     document.querySelector(`#story-list li[data-story-id="${currentStory.id}"]`)?.classList.add('selected');
+                 } else {
+                     updateStatus('Sélectionnez une histoire.', false);
+                 }
+            }
+
+            function setMusicVolume(volume) {
+                musicAudio.volume = volume;
+                musicVolumeOutput.textContent = `${Math.round(volume * 100)}%`;
+            }
+
+            function updateStatus(message, isNowPlaying = false) {
+                statusEl.textContent = message;
+                statusEl.classList.toggle('playing', isNowPlaying);
+            }
+
+             function highlightPlayingStory(storyId, isNowPlaying) {
+                 document.querySelectorAll('#story-list li').forEach(li => {
+                     if (li.dataset.storyId === storyId) {
+                         li.classList.toggle('playing', isNowPlaying);
+                         // Si on arrête de jouer, mais que c'est toujours l'histoire sélectionnée, remettre 'selected'
+                         if (!isNowPlaying && currentStory && currentStory.id === storyId) {
+                            li.classList.add('selected');
+                         } else {
+                             // Si on commence à jouer, enlever 'selected' car 'playing' prend le dessus
+                             if (isNowPlaying) li.classList.remove('selected');
+                         }
+                     } else {
+                         li.classList.remove('playing'); // Assurer qu'aucun autre n'est marqué comme jouant
+                     }
+                 });
+            }
+
+            // --- Écouteurs d'événements ---
+            playPauseBtn.addEventListener('click', playPlayback); // Bouton unique pour démarrer
+            stopBtn.addEventListener('click', stopPlayback);
+            musicSelectEl.addEventListener('change', selectMusic);
+            voiceSelectEl.addEventListener('change', () => {
+                // Si on change de voix pendant la lecture, il faut arrêter et redémarrer
+                if (TTSManager.isSpeaking()) {
+                    console.log("Voice changed during playback. Stopping and restarting.");
+                    const currentText = currentStory?.text; // Sauver le texte
+                    stopPlayback(); // Arrête tout
+                    // Petit délai pour être sûr que tout est arrêté avant de relancer
+                    setTimeout(() => {
+                        if (currentText && currentStory) { // Vérifier si on a toujours une histoire sélectionnée
+                             selectStory(currentStory); // Resélectionne pour UI
+                             playPlayback(); // Relance avec la nouvelle voix
+                        }
+                    }, 200);
+                }
+            });
+
+            musicVolumeSlider.addEventListener('input', (e) => setMusicVolume(e.target.value));
+
+             // Gérer les erreurs de chargement de la musique
+             musicAudio.addEventListener('error', (e) => {
+                 console.error('Error loading/playing music audio:', e);
+                 updateStatus(`Erreur chargement musique: ${currentMusic?.name || 'inconnue'}.`);
+                 musicAudio.pause();
+                 musicAudio.src = "";
+                 currentMusic = null;
+                 musicSelectEl.value = ""; // Réinitialise le select
+             });
+
+            // --- Initialisation ---
+            initAudioContextIfNeeded(); // Prépare l'audio pour l'interaction
+            TTSManager.init(); // Initialise la synthèse vocale (qui peut peupler les voix de manière asynchrone)
+            populateStories();
+            populateMusic();
+            setMusicVolume(musicVolumeSlider.value); // Volume initial
+
+            console.log("Conte de Poche (TTS) App Ready.");
+        });
+    </script>
+</body>
+</html>
